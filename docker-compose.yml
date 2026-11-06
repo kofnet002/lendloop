@@ -1,0 +1,29 @@
+name: lendloop
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.46.6
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    env_file: ./n8n/.env
+    environment:
+      GENERIC_TIMEZONE: UTC
+      TZ: UTC
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
+      N8N_RUNNERS_ENABLED: "true"
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "336"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      CODE_ENABLE_STDOUT: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+
+volumes:
+  n8n_data:

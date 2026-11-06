@@ -1,5 +1,6 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { DatabaseReader, MutationCtx } from "../_generated/server";
+import { enqueueLoanEvent, loanActivity } from "./automation";
 import { LIMITS, type LoanStatus } from "./constants";
 import { addDays, daysBetween, isISODate, rangesOverlap, type DateRange } from "./dates";
 import { fail } from "./errors";
@@ -67,6 +68,7 @@ export async function setLoanStatus(
     loan._id,
     status === "returned" ? { status, returnedAt: now } : { status, decidedAt: now },
   );
+  await enqueueLoanEvent(ctx, loan, status);
 }
 
 export async function loadActionableLoan(
@@ -91,10 +93,13 @@ export async function presentLoans(db: DatabaseReader, loans: Doc<"loans">[], to
     db,
     loans.flatMap((loan) => [loan.ownerId, loan.borrowerId]),
   );
-  return loans.map((loan) => ({
-    ...loan,
-    isOverdue: isOverdue(loan, today),
-    owner: publicProfile(users.get(loan.ownerId)),
-    borrower: publicProfile(users.get(loan.borrowerId)),
-  }));
+  return Promise.all(
+    loans.map(async (loan) => ({
+      ...loan,
+      isOverdue: isOverdue(loan, today),
+      owner: publicProfile(users.get(loan.ownerId)),
+      borrower: publicProfile(users.get(loan.borrowerId)),
+      activity: await loanActivity(db, loan._id),
+    })),
+  );
 }

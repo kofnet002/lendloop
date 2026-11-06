@@ -12,7 +12,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "n8n:build": "node n8n/build-workflows.mjs",
+    "n8n:check": "node n8n/build-workflows.mjs && git diff --exit-code -- n8n/workflows",
+    "n8n:up": "docker compose up -d",
+    "n8n:import": "./n8n/import.sh",
+    "seed": "convex run seed:demo"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.25",

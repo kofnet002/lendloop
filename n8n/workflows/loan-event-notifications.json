@@ -1,0 +1,393 @@
+{
+  "id": "lendloopEvents01",
+  "name": "LendLoop · Loan event notifications",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Loan event webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lendloop/loan-events",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "cef544de-0ab6-5371-5da6-70c6e5bdd522",
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "e7e08d5a-4bee-ec29-1cb9-ff2c381a621c"
+    },
+    {
+      "name": "Verify signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require(\"crypto\");\nconst TOLERANCE_MS = 5 * 60 * 1000;\n\nconst item = $input.first();\nconst headers = item.json.headers ?? {};\nconst raw = (await this.helpers.getBinaryDataBuffer(0, \"data\")).toString(\"utf8\");\nconst timestamp = String(headers[\"x-lendloop-timestamp\"] ?? \"\");\nconst signature = String(headers[\"x-lendloop-signature\"] ?? \"\");\nconst secret = $env.N8N_WEBHOOK_SECRET;\nif (!secret) throw new Error(\"N8N_WEBHOOK_SECRET is not configured\");\n\nconst expected = `v1=${crypto.createHmac(\"sha256\", secret).update(`${timestamp}.${raw}`).digest(\"hex\")}`;\nconst fresh = Math.abs(Date.now() - Number(timestamp)) <= TOLERANCE_MS;\nconst valid =\n  fresh &&\n  signature.length === expected.length &&\n  crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));\n\nif (!valid) return [{ json: { valid: false } }];\n\nconst event = JSON.parse(raw);\nconst seen = $getWorkflowStaticData(\"global\").deliveredEventIds ?? [];\nreturn [{ json: { valid: true, duplicate: seen.includes(event.id), event } }];"
+      },
+      "id": "45be1aa2-62c3-70d7-cdd5-50b83286b77d",
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "name": "Signature valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "4299fc06-450e-70ba-9035-17c7dc9cc595",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f1124bc9-cfa3-3232-85e9-a2b85eb5f1c7",
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "name": "Already delivered?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "3cfdf12f-6b7e-790e-0b03-138d04dbdc02",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9ec7f06e-fe6e-ee90-ba47-fb32ecbfc28f",
+      "position": [
+        780,
+        0
+      ]
+    },
+    {
+      "name": "Compose message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const TEMPLATES = {\n  \"loan.requested\": ({ loan }) => ({\n    subject: `New request to borrow your ${loan.toolName}`,\n    text: `A neighbor would like to borrow your ${loan.toolName} from ${loan.startDate} to ${loan.endDate}. Review it under Incoming requests.`,\n  }),\n  \"loan.approved\": ({ loan }) => ({\n    subject: `Approved: ${loan.toolName}`,\n    text: `Your request for the ${loan.toolName} (${loan.startDate} – ${loan.endDate}) was approved. Please return it by ${loan.endDate}.`,\n  }),\n  \"loan.declined\": ({ loan }) => ({\n    subject: `Declined: ${loan.toolName}`,\n    text: `Your request for the ${loan.toolName} (${loan.startDate} – ${loan.endDate}) was declined. Try other dates or another tool.`,\n  }),\n  \"loan.cancelled\": ({ loan }) => ({\n    subject: `Request cancelled: ${loan.toolName}`,\n    text: `A borrower cancelled their request for your ${loan.toolName} (${loan.startDate} – ${loan.endDate}).`,\n  }),\n  \"loan.returned\": ({ loan }) => ({\n    subject: `Returned: ${loan.toolName}`,\n    text: `The lender confirmed the ${loan.toolName} was returned. Thanks for borrowing responsibly!`,\n  }),\n};\n\nconst { event } = $input.first().json;\nconst template = TEMPLATES[event.type];\nif (!template) throw new Error(`Unsupported event type: ${event.type}`);\n\nreturn [\n  {\n    json: {\n      eventId: event.id,\n      type: event.type,\n      to: event.recipient.email,\n      name: event.recipient.name,\n      ...template(event),\n    },\n  },\n];"
+      },
+      "id": "218e4190-1730-7b5c-703e-5813659b542e",
+      "position": [
+        1040,
+        0
+      ]
+    },
+    {
+      "name": "Email enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "36bef070-e8b0-3329-bfba-86f20d95842f",
+              "leftValue": "={{ $env.LENDLOOP_EMAIL_ENABLED === 'true' && Boolean($json.to) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "90ab0406-54c6-78b0-60d7-2f8880263a08",
+      "position": [
+        1300,
+        0
+      ]
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: $env.LENDLOOP_EMAIL_FROM, to: [$json.to], subject: $json.subject, text: $json.text }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "lendloopResendApi",
+          "name": "Resend API"
+        }
+      },
+      "id": "e005abfb-014d-634f-43b1-6df5e3de638c",
+      "position": [
+        1560,
+        0
+      ]
+    },
+    {
+      "name": "Remember event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const MAX_REMEMBERED = 1000;\n\nconst message = $(\"Compose message\").first().json;\nconst channel = $input.first().json.channel ?? \"email\";\nconst staticData = $getWorkflowStaticData(\"global\");\nconst delivered = staticData.deliveredEventIds ?? [];\nstaticData.deliveredEventIds = [...delivered, message.eventId].slice(-MAX_REMEMBERED);\n\nreturn [{ json: { status: \"delivered\", eventId: message.eventId, channel } }];"
+      },
+      "id": "2a2df80a-49b5-1c77-736c-1af3bd94f4e6",
+      "position": [
+        1820,
+        0
+      ]
+    },
+    {
+      "name": "Respond delivered",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: $json.status, channel: $json.channel }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ab29efaf-592b-33a1-f34e-d3e520b3e3f8",
+      "position": [
+        2080,
+        0
+      ]
+    },
+    {
+      "name": "Reject signature",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: \"INVALID_SIGNATURE\" }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "12c71803-8c57-cb39-53e4-bc559bcc46f9",
+      "position": [
+        520,
+        200
+      ]
+    },
+    {
+      "name": "Acknowledge duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"duplicate\" }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "0551e444-061b-e600-9779-d17f34be874d",
+      "position": [
+        780,
+        200
+      ]
+    },
+    {
+      "name": "Log notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({ json }) => {\n  console.log(`[lendloop] notify ${json.name} <${json.to ?? \"no-email\"}>: ${json.subject}`);\n  return { json: { ...json, channel: \"log\" } };\n});"
+      },
+      "id": "2e17d54d-22ff-77e4-bd81-df8bec9ab3c8",
+      "position": [
+        1560,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Loan event webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify signature": {
+      "main": [
+        [
+          {
+            "node": "Signature valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signature valid?": {
+      "main": [
+        [
+          {
+            "node": "Already delivered?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already delivered?": {
+      "main": [
+        [
+          {
+            "node": "Acknowledge duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compose message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose message": {
+      "main": [
+        [
+          {
+            "node": "Email enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email enabled?": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Remember event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log notification": {
+      "main": [
+        [
+          {
+            "node": "Remember event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remember event": {
+      "main": [
+        [
+          {
+            "node": "Respond delivered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "lendloopErrors01"
+  }
+}

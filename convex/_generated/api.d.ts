@@ -9,16 +9,22 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as automation from "../automation.js";
+import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_automation from "../lib/automation.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_dates from "../lib/dates.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_functions from "../lib/functions.js";
+import type * as lib_http from "../lib/http.js";
 import type * as lib_loans from "../lib/loans.js";
+import type * as lib_signature from "../lib/signature.js";
 import type * as lib_tools from "../lib/tools.js";
 import type * as lib_users from "../lib/users.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as loans from "../loans.js";
+import type * as seed from "../seed.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 
@@ -30,16 +36,22 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  automation: typeof automation;
+  http: typeof http;
   "lib/auth": typeof lib_auth;
+  "lib/automation": typeof lib_automation;
   "lib/constants": typeof lib_constants;
   "lib/dates": typeof lib_dates;
   "lib/errors": typeof lib_errors;
   "lib/functions": typeof lib_functions;
+  "lib/http": typeof lib_http;
   "lib/loans": typeof lib_loans;
+  "lib/signature": typeof lib_signature;
   "lib/tools": typeof lib_tools;
   "lib/users": typeof lib_users;
   "lib/validators": typeof lib_validators;
   loans: typeof loans;
+  seed: typeof seed;
   tools: typeof tools;
   users: typeof users;
 }>;
