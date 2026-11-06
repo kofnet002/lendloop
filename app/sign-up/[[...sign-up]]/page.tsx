@@ -1,10 +1,10 @@
 import { SignUp } from "@clerk/nextjs";
-import { AuthPage } from "@/components/layout/auth-page";
+import { AuthPage, SIGNED_OUT_PAGE } from "@/components/layout/auth-page";
 
 export default function SignUpPage() {
   return (
     <AuthPage>
-      <SignUp fallbackRedirectUrl="/board" />
+      <SignUp fallbackRedirectUrl="/board" appearance={SIGNED_OUT_PAGE} />
     </AuthPage>
   );
 }

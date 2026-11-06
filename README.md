@@ -106,13 +106,16 @@ their next token refresh (sign out and back in).
 cp n8n/.env.example n8n/.env        # generate secrets: openssl rand -hex 32
 npm run n8n:up                      # n8n on http://localhost:5678
 npm run n8n:import                  # imports + publishes the 3 workflows (re-runnable)
-ngrok http 5678                     # public URL for Convex cloud -> n8n
+npm run tunnel                      # ngrok to n8n, and points Convex's N8N_LOAN_EVENTS_WEBHOOK_URL at it
 ```
 
-Then set the matching values on the Convex side. Use the **same** secrets as `n8n/.env`:
+`npm run tunnel` reuses an ngrok tunnel that is already running, so re-run it whenever ngrok
+restarts and hands out a new URL. Set `NGROK_DOMAIN=<your-static-domain>.ngrok-free.app` to use
+ngrok's free static domain and keep the URL fixed.
+
+Then set the shared secrets on the Convex side. Use the **same** values as `n8n/.env`:
 
 ```bash
-npx convex env set N8N_LOAN_EVENTS_WEBHOOK_URL https://<tunnel>/webhook/lendloop/loan-events
 npx convex env set N8N_WEBHOOK_SECRET <same as n8n/.env>
 npx convex env set AUTOMATION_API_SECRET <same as n8n/.env>
 ```
