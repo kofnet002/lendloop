@@ -1,14 +1,14 @@
-import { Badge } from "@/components/ui/badge";
+import { Stamp } from "@/components/ui/badge";
 import type { Availability } from "@/convex/lib/tools";
 import { formatDate } from "@/lib/format";
 
-export function AvailabilityBadge({ availability }: { availability: Availability }) {
+export function AvailabilityStamp({ availability }: { availability: Availability }) {
   switch (availability.state) {
     case "available":
-      return <Badge tone="success">Available</Badge>;
+      return <Stamp tone="success">Available</Stamp>;
     case "on_loan":
-      return <Badge tone="warning">On loan until {formatDate(availability.dueDate!)}</Badge>;
+      return <Stamp tone="info">Out until {formatDate(availability.dueDate!)}</Stamp>;
     case "overdue":
-      return <Badge tone="danger">Overdue since {formatDate(availability.dueDate!)}</Badge>;
+      return <Stamp tone="danger">Overdue</Stamp>;
   }
 }

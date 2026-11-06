@@ -2,14 +2,16 @@
 
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { SearchX } from "lucide-react";
-import { useState } from "react";
-import { RequestDialog } from "@/components/tools/request-dialog";
+import { Search, SearchX } from "lucide-react";
+import { useDeferredValue, useState } from "react";
+import { NeedsYou } from "@/components/loans/needs-you";
 import { CategoryFilter } from "@/components/tools/category-filter";
+import { RequestDialog } from "@/components/tools/request-dialog";
 import { ToolCard } from "@/components/tools/tool-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
+import { Input } from "@/components/ui/field";
 import { EmptyState, LoadingList, PageHeader } from "@/components/ui/states";
 import { api } from "@/convex/_generated/api";
 import type { ToolCategory } from "@/convex/lib/constants";
@@ -18,36 +20,65 @@ import { useViewer } from "@/hooks/use-viewer";
 
 type BoardTool = FunctionReturnType<typeof api.tools.list>[number];
 
+function greeting(name: string | undefined) {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+  return name ? `${part}, ${name.split(" ")[0]}` : "The board";
+}
+
 export default function BoardPage() {
   const [category, setCategory] = useState<ToolCategory>();
+  const [search, setSearch] = useState("");
+  const query = useDeferredValue(search.trim().toLowerCase());
   const [requesting, setRequesting] = useState<BoardTool | null>(null);
   const tools = useQuery(api.tools.list, { category });
   const removeTool = useMutation(api.admin.removeTool);
-  const { isAdmin } = useViewer();
+  const { viewer, isAdmin } = useViewer();
   const { run } = useAsyncAction();
+
+  const visible = tools?.filter(
+    (tool) =>
+      !query ||
+      tool.name.toLowerCase().includes(query) ||
+      tool.description.toLowerCase().includes(query),
+  );
 
   return (
     <>
       <PageHeader
-        title="Neighborhood board"
-        description="Everything your neighbors are willing to lend."
+        title={greeting(viewer?.name)}
+        description="What are you fixing, growing or cooking this week?"
+        action={
+          <label className="relative w-full sm:w-72">
+            <span className="sr-only">Search tools</span>
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+            <Input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search drills, tents, mixers…"
+              className="border-2 border-ink pl-9"
+            />
+          </label>
+        }
       />
+      <NeedsYou />
       <CategoryFilter value={category} onChange={setCategory} />
 
-      {tools === undefined ? (
+      {visible === undefined ? (
         <LoadingList />
-      ) : tools.length === 0 ? (
-        <EmptyState icon={SearchX} title="No tools here yet">
-          Try another category, or list one of your own.
+      ) : visible.length === 0 ? (
+        <EmptyState icon={SearchX} title="Nothing on these pegs">
+          Try another category or search, or list one of your own tools.
         </EmptyState>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {tools.map((tool) => (
+        <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map((tool) => (
             <ToolCard
               key={tool._id}
               tool={tool}
               owner={tool.owner}
-              meta={tool.isOwn && <Badge>Your listing</Badge>}
+              meta={tool.isOwn && <Badge tone="info">Yours</Badge>}
               actions={
                 <>
                   {isAdmin && (
@@ -66,7 +97,7 @@ export default function BoardPage() {
                   )}
                   {!tool.isOwn && (
                     <Button size="sm" onClick={() => setRequesting(tool)}>
-                      Request
+                      Borrow this
                     </Button>
                   )}
                 </>
