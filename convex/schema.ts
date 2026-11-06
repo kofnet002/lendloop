@@ -59,10 +59,11 @@ export default defineSchema({
     channel: v.optional(v.string()),
     lastError: v.optional(v.string()),
     completedAt: v.optional(v.number()),
+    dismissedAt: v.optional(v.number()),
   })
     .index("by_key", ["idempotencyKey"])
     .index("by_loan", ["loanId"])
-    .index("by_status", ["status"]),
+    .index("by_status_dismissed", ["status", "dismissedAt"]),
 
   automationFailures: defineTable({
     idempotencyKey: v.string(),
@@ -70,5 +71,8 @@ export default defineSchema({
     executionId: v.optional(v.string()),
     node: v.optional(v.string()),
     message: v.string(),
-  }).index("by_key", ["idempotencyKey"]),
+    dismissedAt: v.optional(v.number()),
+  })
+    .index("by_key", ["idempotencyKey"])
+    .index("by_dismissed", ["dismissedAt"]),
 });

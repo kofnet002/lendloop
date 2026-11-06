@@ -14,7 +14,7 @@ import { LOAN_STATUSES, type LoanStatus } from "@/convex/lib/constants";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import { useViewer } from "@/hooks/use-viewer";
 import { timeAgo } from "@/lib/format";
-import { LOAN_STATUS } from "@/lib/labels";
+import { EVENT_LABELS, LOAN_STATUS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -140,7 +140,9 @@ function Neighbors() {
 function AutomationHealth() {
   const health = useQuery(api.admin.automationHealth);
   const retry = useMutation(api.admin.retryAutomationEvent);
-  const { run, isPending } = useAsyncAction();
+  const dismissEvent = useMutation(api.admin.dismissAutomationEvent);
+  const dismissFailure = useMutation(api.admin.dismissWorkflowFailure);
+  const { run, busy } = useAsyncAction();
 
   if (health === undefined) return <LoadingList />;
   const healthy = health.failedEvents.length === 0 && health.workflowFailures.length === 0;
@@ -153,7 +155,7 @@ function AutomationHealth() {
       </p>
       {healthy && (
         <EmptyState icon={CheckCircle2} title="All automations healthy">
-          Failed deliveries and n8n workflow errors appear here.
+          Failed deliveries and n8n workflow errors appear here until you retry or dismiss them.
         </EmptyState>
       )}
       {health.failedEvents.length > 0 && (
@@ -162,27 +164,45 @@ function AutomationHealth() {
           {health.failedEvents.map((event) => (
             <Card key={event._id} className="flex flex-wrap items-start justify-between gap-3">
               <div className="grid gap-1 text-sm">
-                <code className="text-xs">{event.idempotencyKey}</code>
+                <span className="font-medium">
+                  {event.kind === "overdue_reminder"
+                    ? "Overdue reminder"
+                    : EVENT_LABELS[event.eventType!]}{" "}
+                  for the {event.toolName.toLowerCase()}
+                </span>
                 <span className="text-stamp-red">{event.lastError ?? "Unknown error"}</span>
-                <span className="flex gap-4 text-xs text-muted">
+                <span className="flex flex-wrap gap-x-4 text-xs text-muted">
                   <span>
                     {event.attempts} attempt{event.attempts === 1 ? "" : "s"}
                   </span>
                   {event.completedAt && <span>{timeAgo(event.completedAt)}</span>}
+                  <code>{event.idempotencyKey}</code>
                 </span>
               </div>
-              {event.kind === "loan_notification" && (
+              <div className="flex gap-2">
                 <Button
                   size="sm"
-                  variant="secondary"
-                  disabled={isPending(event._id)}
+                  variant="ghost"
+                  disabled={busy}
                   onClick={() =>
-                    run(event._id, () => retry({ eventId: event._id }), "Retry scheduled")
+                    run(event._id, () => dismissEvent({ eventId: event._id }), "Dismissed")
                   }
                 >
-                  Retry
+                  Dismiss
                 </Button>
-              )}
+                {event.kind === "loan_notification" && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      run(event._id, () => retry({ eventId: event._id }), "Retry scheduled")
+                    }
+                  >
+                    Retry
+                  </Button>
+                )}
+              </div>
             </Card>
           ))}
         </section>
@@ -191,17 +211,29 @@ function AutomationHealth() {
         <section className="grid gap-3">
           <h2 className="text-sm font-semibold text-muted">n8n workflow errors</h2>
           {health.workflowFailures.map((failure) => (
-            <Card key={failure._id} className="grid gap-1 text-sm">
-              <span className="flex items-center gap-2 font-medium">
-                <Activity className="size-4 text-stamp-red" aria-hidden />
-                {failure.workflow}
-              </span>
-              <span className="text-stamp-red">{failure.message}</span>
-              <span className="flex flex-wrap gap-x-4 text-xs text-muted">
-                {failure.node && <span>Node “{failure.node}”</span>}
-                <span>Execution {failure.executionId}</span>
-                <span>{timeAgo(failure._creationTime)}</span>
-              </span>
+            <Card key={failure._id} className="flex flex-wrap items-start justify-between gap-3">
+              <div className="grid gap-1 text-sm">
+                <span className="flex items-center gap-2 font-medium">
+                  <Activity className="size-4 text-stamp-red" aria-hidden />
+                  {failure.workflow}
+                </span>
+                <span className="text-stamp-red">{failure.message}</span>
+                <span className="flex flex-wrap gap-x-4 text-xs text-muted">
+                  {failure.node && <span>Node “{failure.node}”</span>}
+                  <span>Execution {failure.executionId}</span>
+                  <span>{timeAgo(failure._creationTime)}</span>
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() =>
+                  run(failure._id, () => dismissFailure({ failureId: failure._id }), "Dismissed")
+                }
+              >
+                Dismiss
+              </Button>
             </Card>
           ))}
         </section>
