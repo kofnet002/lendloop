@@ -49,7 +49,7 @@ export default function AdminPage() {
         title="Admin"
         description="Moderate listings, review loans and keep automations healthy."
       />
-      <div className="flex gap-1 border-b border-border" role="tablist">
+      <div className="flex gap-1 border-b border-line" role="tablist">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
@@ -57,8 +57,8 @@ export default function AdminPage() {
             aria-selected={tab === id}
             onClick={() => setTab(id)}
             className={cn(
-              "-mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted",
-              tab === id && "border-accent font-medium text-foreground",
+              "-mb-px border-b-[3px] border-transparent px-3 py-2 text-sm font-medium text-muted",
+              tab === id && "border-yellow text-ink",
             )}
           >
             {label}
@@ -106,7 +106,7 @@ function Neighbors() {
   if (users.length === 0) return <EmptyState icon={Users} title="No neighbors yet" />;
 
   return (
-    <Card className="divide-y divide-border p-0">
+    <Card className="divide-y divide-line p-0">
       {users.map((user) => (
         <div key={user._id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="grid min-w-0">
@@ -163,10 +163,12 @@ function AutomationHealth() {
             <Card key={event._id} className="flex flex-wrap items-start justify-between gap-3">
               <div className="grid gap-1 text-sm">
                 <code className="text-xs">{event.idempotencyKey}</code>
-                <span className="text-danger">{event.lastError ?? "Unknown error"}</span>
-                <span className="text-xs text-muted">
-                  {event.attempts} attempt{event.attempts === 1 ? "" : "s"}
-                  {event.completedAt && ` · ${timeAgo(event.completedAt)}`}
+                <span className="text-stamp-red">{event.lastError ?? "Unknown error"}</span>
+                <span className="flex gap-4 text-xs text-muted">
+                  <span>
+                    {event.attempts} attempt{event.attempts === 1 ? "" : "s"}
+                  </span>
+                  {event.completedAt && <span>{timeAgo(event.completedAt)}</span>}
                 </span>
               </div>
               {event.kind === "loan_notification" && (
@@ -191,13 +193,14 @@ function AutomationHealth() {
           {health.workflowFailures.map((failure) => (
             <Card key={failure._id} className="grid gap-1 text-sm">
               <span className="flex items-center gap-2 font-medium">
-                <Activity className="size-4 text-danger" aria-hidden />
+                <Activity className="size-4 text-stamp-red" aria-hidden />
                 {failure.workflow}
               </span>
-              <span className="text-danger">{failure.message}</span>
-              <span className="text-xs text-muted">
-                {failure.node && `Node “${failure.node}” · `}execution {failure.executionId} ·{" "}
-                {timeAgo(failure._creationTime)}
+              <span className="text-stamp-red">{failure.message}</span>
+              <span className="flex flex-wrap gap-x-4 text-xs text-muted">
+                {failure.node && <span>Node “{failure.node}”</span>}
+                <span>Execution {failure.executionId}</span>
+                <span>{timeAgo(failure._creationTime)}</span>
               </span>
             </Card>
           ))}

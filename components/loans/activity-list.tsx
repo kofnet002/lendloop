@@ -19,7 +19,7 @@ export function ActivityList({ activity }: { activity: LoanActivity[] }) {
   if (activity.length === 0) return null;
   return (
     <ul
-      className="grid gap-1 border-t border-border pt-3 text-xs text-muted"
+      className="grid gap-1.5 border-t border-dashed border-line pt-3 text-xs text-muted"
       aria-label="Automation activity"
     >
       {activity.map((event) => {
@@ -27,12 +27,16 @@ export function ActivityList({ activity }: { activity: LoanActivity[] }) {
         return (
           <li
             key={event._id}
-            className={cn("flex items-center gap-1.5", event.status === "failed" && "text-danger")}
+            className={cn(
+              "flex items-center gap-1.5",
+              event.status === "failed" && "text-stamp-red",
+            )}
           >
             <Icon className="size-3.5 shrink-0" aria-hidden />
-            <span>
-              {describe(event)} · {timeAgo(event.at)}
-            </span>
+            <span>{describe(event)}</span>
+            <time className="ml-auto shrink-0" dateTime={new Date(event.at).toISOString()}>
+              {timeAgo(event.at)}
+            </time>
           </li>
         );
       })}

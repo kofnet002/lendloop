@@ -26,7 +26,7 @@ export default function RequestsPage() {
           body: (
             <>
               Find something on the{" "}
-              <Link href="/board" className="text-accent underline">
+              <Link href="/board" className="text-stamp-blue underline">
                 board
               </Link>
               .
