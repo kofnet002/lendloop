@@ -57,6 +57,28 @@ Enforcement lives **in Convex**, not the UI:
 - Users who aren't party to a loan get `NOT_FOUND`, not `FORBIDDEN`, so loan IDs can't be probed.
 - Integration endpoints and internal functions (`internal.*`) can't be called from the browser.
 
+## Security and data minimization
+
+- **Authentication:** Clerk issues a JWT (template `convex`) that Convex verifies against
+  `CLERK_JWT_ISSUER_DOMAIN`. The app layout also calls `auth.protect()`, but the server-side checks
+  in Convex are what actually protect the data.
+- **Authorization:** role and ownership checks run in Convex on every call (see
+  [Roles and access control](#roles-and-access-control)). A direct API call by a regular user to an
+  admin function returns `FORBIDDEN`.
+- **Least data out:**
+  - The public page query returns only `name` and `category` of available tools: no owner,
+    condition, description or dates.
+  - Neighbors see each other as a name and a Trusted badge. Emails are never sent to another user's
+    browser.
+  - n8n receives only the recipient's name and email, the tool name and dates for one message.
+    Overdue fetches return only loans that are overdue and not yet reminded today.
+- **Input validation:** every argument has a Convex validator; text is trimmed and length-capped,
+  and date rules are enforced server-side.
+- **Integration security:** signed both ways with separate secrets, replay window and fail-closed
+  behavior (see [Security, both directions](#security-both-directions)).
+- **Secrets:** only in `.env.local`, Convex environment variables, `n8n/.env` and n8n credentials.
+  All local env files are gitignored, and workflow JSON reads secrets via `$env` at runtime.
+
 ---
 
 ## Getting started
@@ -134,6 +156,27 @@ npm run dev                         # http://localhost:3000
 npm run seed                        # optional demo neighbors, tools and an overdue loan
 ```
 
+### Environment variables
+
+| Where                         | Variable                                                         | Purpose                                                     |
+| ----------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------- |
+| `.env.local` (Next.js)        | `NEXT_PUBLIC_CONVEX_URL`                                         | Convex client URL                                           |
+|                               | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`          | Clerk keys (secret key is server-only)                      |
+|                               | `NEXT_PUBLIC_CLERK_SIGN_IN_URL`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-in`, `/sign-up`                                      |
+|                               | `CONVEX_DEPLOYMENT` or `CONVEX_DEPLOY_KEY`                       | Which Convex deployment the CLI targets                     |
+| Convex (`npx convex env set`) | `CLERK_JWT_ISSUER_DOMAIN`                                        | Clerk issuer that Convex trusts                             |
+|                               | `N8N_LOAN_EVENTS_WEBHOOK_URL`                                    | n8n webhook for loan events (`npm run tunnel` sets it)      |
+|                               | `N8N_WEBHOOK_SECRET`                                             | Signs Convex → n8n requests                                 |
+|                               | `AUTOMATION_API_SECRET`                                          | Verifies n8n → Convex requests                              |
+| `n8n/.env` (Docker Compose)   | `N8N_ENCRYPTION_KEY`                                             | Encrypts n8n credentials at rest                            |
+|                               | `N8N_WEBHOOK_SECRET`, `AUTOMATION_API_SECRET`                    | Same values as in Convex                                    |
+|                               | `CONVEX_SITE_URL`                                                | `https://<deployment>.convex.site` for the signed endpoints |
+|                               | `WEBHOOK_URL`                                                    | Public base URL n8n advertises (the tunnel)                 |
+|                               | `LENDLOOP_EMAIL_ENABLED`, `LENDLOOP_EMAIL_FROM`                  | Optional email; off by default, so notifications are logged |
+| Shell (optional)              | `NGROK_DOMAIN`, `E2E_BASE_URL`                                   | Static tunnel domain; base URL for e2e tests                |
+
+Templates: [`.env.example`](.env.example) and [`n8n/.env.example`](n8n/.env.example).
+
 ### Useful scripts
 
 | Script                                        | Purpose                                                            |
@@ -190,6 +233,27 @@ npm run seed                        # optional demo neighbors, tools and an over
 
 ---
 
+## Running in production
+
+What I would change before real neighbors use it:
+
+- **Hosting:** deploy Next.js (e.g. Vercel) and Convex production (`npx convex deploy`) with their
+  own env vars, and use a Clerk production instance on the real domain.
+- **n8n:** run it on a stable HTTPS domain (n8n Cloud or a managed container) instead of a tunnel,
+  with Postgres as its database, queue mode with workers, and a backed-up `N8N_ENCRYPTION_KEY`.
+- **Secrets:** keep them in a secrets manager and rotate them. Support two active secrets per
+  direction during a rotation so no request fails mid-switch.
+- **Notifications:** replace the log channel with a real provider (email from a verified domain, or
+  SMS/push), and add per-user notification preferences and unsubscribe.
+- **Idempotency at scale:** move n8n's delivered-event memory from workflow static data to a shared
+  store (Postgres or Redis).
+- **Abuse and scale:** rate-limit requests and listings, and paginate board and admin lists.
+- **Observability:** send the error workflow and failed deliveries to an alerting channel (Slack,
+  PagerDuty), add error tracking (Sentry) and uptime checks on the webhook and HTTP endpoints.
+- **Data lifecycle:** handle Clerk `user.deleted` webhooks to anonymize users, set a retention period
+  for loans and automation logs, and send reminders in each user's own timezone.
+- **Demo data:** drop the seed function and test accounts from the production deployment.
+
 ## Project structure
 
 ```
@@ -204,7 +268,7 @@ convex/
 n8n/
   code/              Code-node sources (plain JS, reviewed like any code)
   build-workflows.mjs  generates workflows/*.json with stable IDs
-  workflows/         importable workflows (generated, no secrets)
+  workflows/         exported workflow JSON in n8n's import/export format (generated, no secrets)
 docs/architecture.md diagrams and design decisions
 ```
 
