@@ -123,6 +123,7 @@ export function DateRangeCalendar({
               disabled={isDisabled(day)}
               onClick={() => select(day)}
               aria-pressed={selected}
+              data-autofocus={day === value.startDate || undefined}
               aria-label={`${dayLabel.format(new Date(`${day}T00:00:00Z`))}${booked ? ", already booked" : ""}`}
               className={cn(
                 "relative mx-auto grid size-9 place-items-center rounded-lg font-medium tabular-nums transition-colors",
