@@ -61,19 +61,19 @@ function Navigation() {
   const isActive = useIsActive();
 
   return (
-    <nav className="-mx-3 -mb-px hidden sm:flex" aria-label="Main">
+    <nav className="-mx-3.5 hidden gap-1 sm:flex" aria-label="Main">
       {items.map(({ href, label, count }) => (
         <Link
           key={href}
           href={href}
           aria-current={isActive(href) ? "page" : undefined}
           className={cn(
-            "flex items-center gap-1.5 border-b-[3px] border-transparent px-3 pt-2 pb-2.5 text-sm font-medium whitespace-nowrap text-chalk/70 transition-colors hover:text-chalk",
-            isActive(href) && "border-yellow text-chalk",
+            "flex items-center gap-1.5 rounded-t-lg px-3.5 pt-2 pb-2.5 text-sm font-medium whitespace-nowrap text-chalk/75 transition-colors hover:bg-chalk/10 hover:text-chalk",
+            isActive(href) && "bg-yellow font-semibold text-navy hover:bg-yellow hover:text-navy",
           )}
         >
           {label}
-          <Count value={count} />
+          <Count value={count} className={cn(isActive(href) && "bg-navy text-yellow")} />
         </Link>
       ))}
     </nav>
@@ -141,7 +141,7 @@ function Frame({
           </div>
           {navigation}
         </div>
-        <div className="hazard h-1.5 border-t-2 border-navy" aria-hidden />
+        <div className="hazard h-1.5 border-t-[3px] border-yellow" aria-hidden />
       </header>
       <main className="mx-auto grid w-full max-w-6xl content-start gap-6 px-4 pt-6 pb-28 sm:px-6 sm:py-8">
         {children}
