@@ -28,11 +28,11 @@ export const CONDITION_LABELS: Record<ToolCondition, string> = {
 
 export const LOAN_STATUS: Record<LoanStatus | "overdue", { label: string; tone: BadgeTone }> = {
   requested: { label: "Pending", tone: "warning" },
-  approved: { label: "On loan", tone: "success" },
+  approved: { label: "On loan", tone: "info" },
   overdue: { label: "Overdue", tone: "danger" },
   declined: { label: "Declined", tone: "neutral" },
   cancelled: { label: "Cancelled", tone: "neutral" },
-  returned: { label: "Returned", tone: "neutral" },
+  returned: { label: "Returned", tone: "success" },
 };
 
 export const EVENT_LABELS: Record<LoanEventType, string> = {

@@ -1,12 +1,13 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Big_Shoulders, Big_Shoulders_Stencil, Instrument_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const display = Big_Shoulders_Stencil({ variable: "--font-display", subsets: ["latin"] });
+const numeric = Big_Shoulders({ variable: "--font-numeric", subsets: ["latin"] });
+const body = Instrument_Sans({ variable: "--font-body", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: { default: "LendLoop", template: "%s · LendLoop" },
@@ -15,9 +16,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${display.variable} ${numeric.variable} ${body.variable} h-full antialiased`}
+    >
       <body className="flex min-h-full flex-col font-sans">
-        <ClerkProvider appearance={{ variables: { colorPrimary: "#2f6b4f" } }}>
+        <ClerkProvider
+          appearance={{ variables: { colorPrimary: "#1b2733", borderRadius: "0.5rem" } }}
+        >
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </ClerkProvider>
         <Toaster position="bottom-right" richColors closeButton />

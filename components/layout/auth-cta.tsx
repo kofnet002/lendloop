@@ -5,17 +5,18 @@ import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 
-export function AuthCta({ size = "md" }: { size?: "sm" | "md" }) {
+export function AuthCta({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const label = size === "sm" ? "Sign in" : "Sign in to lend or borrow";
   return (
     <>
       <AuthLoading>
-        <Button size={size} disabled>
-          Loading…
-        </Button>
+        <Link href="/sign-in" className={buttonVariants({ size })}>
+          {label}
+        </Link>
       </AuthLoading>
       <Unauthenticated>
         <SignInButton mode="modal" forceRedirectUrl="/board">
-          <Button size={size}>Sign in to lend or borrow</Button>
+          <Button size={size}>{label}</Button>
         </SignInButton>
       </Unauthenticated>
       <Authenticated>
