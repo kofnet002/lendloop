@@ -3,3 +3,4 @@ node_modules
 convex/_generated
 package-lock.json
 n8n/workflows
+n8n/code

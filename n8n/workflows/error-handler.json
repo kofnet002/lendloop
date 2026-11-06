@@ -1,0 +1,90 @@
+{
+  "id": "lendloopErrors01",
+  "name": "LendLoop · Error handler",
+  "active": false,
+  "nodes": [
+    {
+      "name": "On workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "parameters": {},
+      "id": "cbcdf789-4136-08a0-1201-2fca4f5b4b8f",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Build failure report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require(\"crypto\");\n\nfunction signedHeaders(body) {\n  const secret = $env.AUTOMATION_API_SECRET;\n  if (!secret) throw new Error(\"AUTOMATION_API_SECRET is not configured\");\n  const timestamp = String(Date.now());\n  const digest = crypto.createHmac(\"sha256\", secret).update(`${timestamp}.${body}`).digest(\"hex\");\n  return { \"x-lendloop-timestamp\": timestamp, \"x-lendloop-signature\": `v1=${digest}` };\n}\n\nfunction signed(payload) {\n  const body = payload === undefined ? \"\" : JSON.stringify(payload);\n  return { body, headers: signedHeaders(body) };\n}\n\nconst { execution = {}, trigger = {}, workflow = {} } = $input.first().json;\n\nconst report = {\n  workflow: workflow.name ?? \"unknown\",\n  executionId: String(execution.id ?? `trigger-${workflow.id ?? \"unknown\"}-${Date.now()}`),\n  node: execution.lastNodeExecuted ?? trigger.error?.node?.name,\n  message: execution.error?.message ?? trigger.error?.message ?? \"Unknown error\",\n};\nconsole.error(`[lendloop] workflow failed: ${JSON.stringify(report)}`);\n\nreturn [{ json: signed(report) }];"
+      },
+      "id": "3310d2b3-74f3-28d0-0276-65aaba8a3b03",
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "name": "Report failure to Convex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CONVEX_SITE_URL }}/automation/failures",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify($json.headers) }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "id": "0b979613-6525-d880-5a3c-5d01171a0986",
+      "position": [
+        520,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Build failure report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build failure report": {
+      "main": [
+        [
+          {
+            "node": "Report failure to Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  }
+}

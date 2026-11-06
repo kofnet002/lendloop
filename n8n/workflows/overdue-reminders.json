@@ -1,0 +1,350 @@
+{
+  "id": "lendloopOverdue1",
+  "name": "LendLoop · Overdue reminders",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Every day at 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "5ba57cd4-08b5-1993-d3e9-cfe93b33fe75",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Sign fetch request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require(\"crypto\");\n\nfunction signedHeaders(body) {\n  const secret = $env.AUTOMATION_API_SECRET;\n  if (!secret) throw new Error(\"AUTOMATION_API_SECRET is not configured\");\n  const timestamp = String(Date.now());\n  const digest = crypto.createHmac(\"sha256\", secret).update(`${timestamp}.${body}`).digest(\"hex\");\n  return { \"x-lendloop-timestamp\": timestamp, \"x-lendloop-signature\": `v1=${digest}` };\n}\n\nfunction signed(payload) {\n  const body = payload === undefined ? \"\" : JSON.stringify(payload);\n  return { body, headers: signedHeaders(body) };\n}\n\nreturn [{ json: signed() }];"
+      },
+      "id": "f48f9134-23c1-a3ab-9461-7338d78efdb0",
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "name": "Fetch overdue loans",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CONVEX_SITE_URL }}/automation/overdue-loans",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify($json.headers) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "id": "7ca13b30-60a8-e024-a69f-ab0b460d5875",
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "name": "Compose reminders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const { loans } = $input.first().json;\n\nreturn loans.map((loan) => ({\n  json: {\n    loanId: loan.loanId,\n    reminderKey: loan.reminderKey,\n    to: loan.borrower.email,\n    name: loan.borrower.name,\n    subject: `Reminder: please return the ${loan.toolName}`,\n    text: `Hi ${loan.borrower.name}, the ${loan.toolName} was due back on ${loan.endDate} (${loan.daysOverdue} day(s) ago). Please return it to its owner as soon as possible.`,\n  },\n}));"
+      },
+      "id": "2e5e7d3a-64fa-b330-4a5f-261301b1dd94",
+      "position": [
+        780,
+        0
+      ]
+    },
+    {
+      "name": "Email enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "36bef070-e8b0-3329-bfba-86f20d95842f",
+              "leftValue": "={{ $env.LENDLOOP_EMAIL_ENABLED === 'true' && Boolean($json.to) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2bda3fd-6849-df17-6c49-9db6f16aa51a",
+      "position": [
+        1040,
+        0
+      ]
+    },
+    {
+      "name": "Send reminder email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: $env.LENDLOOP_EMAIL_FROM, to: [$json.to], subject: $json.subject, text: $json.text }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "lendloopResendApi",
+          "name": "Resend API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "id": "0dfd0a7b-904e-f319-01d5-f2d9747c248b",
+      "position": [
+        1300,
+        0
+      ]
+    },
+    {
+      "name": "Email result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const reminder = $(\"Compose reminders\").item.json;\nconst error = $json.error;\n\nreturn {\n  json: {\n    ...reminder,\n    channel: \"email\",\n    status: error ? \"failed\" : \"sent\",\n    error: error ? String(error.message ?? error) : undefined,\n  },\n};"
+      },
+      "id": "eef88fb9-5cbf-c160-4b0a-3031b90860b5",
+      "position": [
+        1560,
+        0
+      ]
+    },
+    {
+      "name": "Sign write-backs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require(\"crypto\");\n\nfunction signedHeaders(body) {\n  const secret = $env.AUTOMATION_API_SECRET;\n  if (!secret) throw new Error(\"AUTOMATION_API_SECRET is not configured\");\n  const timestamp = String(Date.now());\n  const digest = crypto.createHmac(\"sha256\", secret).update(`${timestamp}.${body}`).digest(\"hex\");\n  return { \"x-lendloop-timestamp\": timestamp, \"x-lendloop-signature\": `v1=${digest}` };\n}\n\nfunction signed(payload) {\n  const body = payload === undefined ? \"\" : JSON.stringify(payload);\n  return { body, headers: signedHeaders(body) };\n}\n\nreturn $input.all().map(({ json }) =>\n  ({\n    json: signed({\n      reminderKey: json.reminderKey,\n      loanId: json.loanId,\n      status: json.status ?? \"sent\",\n      channel: json.channel,\n      ...(json.error ? { error: json.error } : {}),\n    }),\n  }),\n);"
+      },
+      "id": "9aed893c-5685-facb-9094-712a3e8c0203",
+      "position": [
+        1820,
+        0
+      ]
+    },
+    {
+      "name": "Write back reminder status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CONVEX_SITE_URL }}/automation/reminders",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify($json.headers) }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "id": "e14cd88c-9a8d-00f8-11b1-297edc484c56",
+      "position": [
+        2080,
+        0
+      ]
+    },
+    {
+      "name": "Run manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "parameters": {},
+      "id": "05497986-0bbc-b7bd-2a46-2ef93fe1a763",
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "name": "Log notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({ json }) => {\n  console.log(`[lendloop] notify ${json.name} <${json.to ?? \"no-email\"}>: ${json.subject}`);\n  return { json: { ...json, channel: \"log\" } };\n});"
+      },
+      "id": "8afb1832-2847-f50a-188f-9cc7247af3d8",
+      "position": [
+        1300,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Every day at 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Sign fetch request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Sign fetch request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign fetch request": {
+      "main": [
+        [
+          {
+            "node": "Fetch overdue loans",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch overdue loans": {
+      "main": [
+        [
+          {
+            "node": "Compose reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose reminders": {
+      "main": [
+        [
+          {
+            "node": "Email enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email enabled?": {
+      "main": [
+        [
+          {
+            "node": "Send reminder email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send reminder email": {
+      "main": [
+        [
+          {
+            "node": "Email result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email result": {
+      "main": [
+        [
+          {
+            "node": "Sign write-backs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log notification": {
+      "main": [
+        [
+          {
+            "node": "Sign write-backs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign write-backs": {
+      "main": [
+        [
+          {
+            "node": "Write back reminder status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "lendloopErrors01"
+  }
+}
