@@ -27,5 +27,5 @@ test("admins can moderate", async ({ page }) => {
     await expect(page.getByRole("tab", { name: tab })).toHaveAttribute("aria-selected", "true");
   }
   await page.getByRole("tab", { name: "Neighbors" }).click();
-  await expect(page.getByText("Lena Lender")).toBeVisible();
+  await expect(page.getByText("ama+clerk_test@lendloop.dev")).toBeVisible();
 });
