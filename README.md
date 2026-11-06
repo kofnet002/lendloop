@@ -74,25 +74,29 @@ npx convex dev                      # logs in, creates a deployment, writes NEXT
 
 ### 2. Configure Clerk
 
-1. In the Clerk dashboard, activate the **Convex integration** (or create a JWT template named
-   `convex`), then add these claims:
+For a **development** instance, one idempotent script does it all through Clerk's Backend API. It
+creates or updates the `convex` JWT template with the claims below and the three e2e users
+(`e2e/users.json`; Ama is the admin):
 
-   ```json
-   {
-     "role": "{{user.public_metadata.role}}",
-     "email": "{{user.primary_email_address}}",
-     "name": "{{user.full_name}}"
-   }
-   ```
+```bash
+npm run setup:clerk                 # prints the issuer domain to use next
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-app>.clerk.accounts.dev
+```
 
-2. Point Convex at the Clerk issuer:
+To configure it by hand instead, create a JWT template named `convex` (or enable the Convex
+integration) with these claims:
 
-   ```bash
-   npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-app>.clerk.accounts.dev
-   ```
+```json
+{
+  "aud": "convex",
+  "role": "{{user.public_metadata.role}}",
+  "email": "{{user.primary_email_address}}",
+  "name": "{{user.full_name}}"
+}
+```
 
-3. To make someone an admin, set their **public metadata** to `{ "role": "admin" }` in Clerk. It takes
-   effect on their next token refresh (sign out and back in).
+To make someone an admin, set their **public metadata** to `{ "role": "admin" }`. It takes effect on
+their next token refresh (sign out and back in).
 
 ### 3. Start n8n and connect it
 
@@ -130,6 +134,8 @@ npm run seed                        # optional demo neighbors, tools and an over
 | Script                                        | Purpose                                                            |
 | --------------------------------------------- | ------------------------------------------------------------------ |
 | `npm test`                                    | Convex tests: access control, transitions, signatures, idempotency |
+| `npm run test:e2e`                            | Playwright browser tests against the running app (see Testing)     |
+| `npm run setup:clerk`                         | Prepare a Clerk dev instance: JWT template and e2e users           |
 | `npm run typecheck` / `lint` / `format:check` | Static checks (all run in CI)                                      |
 | `npm run n8n:build`                           | Regenerate workflow JSON from `n8n/code/*.js`                      |
 | `npm run n8n:check`                           | CI guard: fails if generated workflows drift from their sources    |
@@ -199,16 +205,25 @@ docs/architecture.md diagrams and design decisions
 
 ## Testing
 
-`npm test` runs 35 tests against an in-memory Convex backend:
+**Unit and integration tests:** `npm test` runs 36 tests against an in-memory Convex backend.
 
 - **Access control:** owners only, admin-only APIs, the role taken from the token.
 - **Validation and transitions:** date rules, double-booking, competing requests, invalid state
   changes.
 - **Integration:**
   - signature tamper, stale and wrong-secret cases
-  - outbox retries, backoff and give-up
+  - outbox retries, backoff and give-up; dismissing failures
   - signed HTTP endpoints, idempotent write-backs, failure reports, fail-closed configuration
 
-The n8n workflows were also exercised end to end against n8n 2.46.6 and a Convex backend. Covered
-paths: signed, tampered and replayed webhooks; overdue reminder runs and re-runs; and error-workflow
-reporting.
+**End-to-end tests:** `npm run test:e2e` drives real browsers through Clerk sign-in against your Convex
+deployment. Run it after `npm run setup:clerk`, with `npx convex dev` running.
+
+- **Lending journey:** the lender lists a tool; the borrower finds it and requests it through the
+  calendar; the lender approves and marks it returned; the borrower sees the history; the lender
+  deletes the listing.
+- **Access:** the public page hides owners, signed-out users are redirected, non-admins are refused
+  `/admin`, and admins can use every tab.
+
+With n8n running, every loan card also shows the delivered notifications as activity. The workflows
+were additionally exercised directly: signed, tampered and replayed webhooks; overdue reminder runs
+and re-runs; and error-workflow reporting.

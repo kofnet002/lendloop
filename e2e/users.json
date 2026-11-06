@@ -1,0 +1,10 @@
+{
+  "admin": {
+    "email": "ama+clerk_test@lendloop.dev",
+    "firstName": "Ama",
+    "lastName": "Admin",
+    "role": "admin"
+  },
+  "lender": { "email": "lena+clerk_test@lendloop.dev", "firstName": "Lena", "lastName": "Lender" },
+  "borrower": { "email": "bo+clerk_test@lendloop.dev", "firstName": "Bo", "lastName": "Borrower" }
+}
