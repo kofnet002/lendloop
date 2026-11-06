@@ -22,13 +22,20 @@ export const viewport: Viewport = {
   ],
 };
 
+const clerkLocalization = {
+  signIn: { start: { title: "Sign in to LendLoop", titleCombined: "Continue to LendLoop" } },
+  signUp: { start: { title: "Join LendLoop", titleCombined: "Join LendLoop" } },
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${sans.variable} ${numeric.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
         <ClerkProvider
+          localization={clerkLocalization}
           appearance={{
             variables: { colorPrimary: "#0f2b47", borderRadius: "0.6rem", fontFamily: "inherit" },
+            options: { logoImageUrl: "/icon.svg", logoLinkUrl: "/" },
           }}
         >
           <ConvexClientProvider>{children}</ConvexClientProvider>

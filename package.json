@@ -19,7 +19,8 @@
     "n8n:import": "./n8n/import.sh",
     "seed": "convex run seed:demo",
     "test:e2e": "playwright test",
-    "setup:clerk": "node --env-file=.env.local scripts/setup-clerk-dev.mjs"
+    "setup:clerk": "node --env-file=.env.local scripts/setup-clerk-dev.mjs",
+    "tunnel": "node scripts/tunnel.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.25",
