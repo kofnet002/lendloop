@@ -15,7 +15,7 @@ export function AuthCta({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         </Link>
       </AuthLoading>
       <Unauthenticated>
-        <SignInButton mode="modal" forceRedirectUrl="/board">
+        <SignInButton mode="modal" withSignUp forceRedirectUrl="/board">
           <Button size={size}>{label}</Button>
         </SignInButton>
       </Unauthenticated>
