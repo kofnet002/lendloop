@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { enqueueLoanEvent } from "./lib/automation";
 import { LIMITS } from "./lib/constants";
 import { todayISO } from "./lib/dates";
 import { fail } from "./lib/errors";
@@ -38,15 +39,17 @@ export const request = userMutation({
       fail("CONFLICT", "You already have a pending request for these dates.");
     }
 
-    return ctx.db.insert("loans", {
+    const parties = { ownerId: tool.ownerId, borrowerId: ctx.viewer._id };
+    const loanId = await ctx.db.insert("loans", {
+      ...parties,
+      ...range,
       toolId,
       toolName: tool.name,
-      ownerId: tool.ownerId,
-      borrowerId: ctx.viewer._id,
-      ...range,
       message: normalizeMessage(message),
       status: "requested",
     });
+    await enqueueLoanEvent(ctx, { _id: loanId, ...parties }, "requested");
+    return loanId;
   },
 });
 

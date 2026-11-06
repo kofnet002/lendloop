@@ -34,3 +34,25 @@ export type ToolCategory = (typeof TOOL_CATEGORIES)[number];
 export type ToolCondition = (typeof TOOL_CONDITIONS)[number];
 export type LoanStatus = (typeof LOAN_STATUSES)[number];
 export type Role = (typeof ROLES)[number];
+
+export const AUTOMATION_KINDS = ["loan_notification", "overdue_reminder"] as const;
+export const DELIVERY_STATUSES = ["pending", "sent", "failed"] as const;
+export const LOAN_EVENT_TYPES = [
+  "loan.requested",
+  "loan.approved",
+  "loan.declined",
+  "loan.cancelled",
+  "loan.returned",
+] as const;
+
+export const AUTOMATION = {
+  maxAttempts: 5,
+  retryDelaysMs: [10_000, 60_000, 300_000, 1_800_000],
+  requestTimeoutMs: 10_000,
+  signatureToleranceMs: 300_000,
+  maxErrorLength: 500,
+} as const;
+
+export type AutomationKind = (typeof AUTOMATION_KINDS)[number];
+export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
+export type LoanEventType = (typeof LOAN_EVENT_TYPES)[number];
