@@ -9,28 +9,28 @@ import {
   Tent,
   type LucideIcon,
 } from "lucide-react";
-import type { CSSProperties } from "react";
+
 import type { ToolCategory } from "@/convex/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, cssVars } from "@/lib/utils";
 
 /** Each category owns a color, like a tool brand; `ink` is the readable foreground on it. */
 export const CATEGORY_STYLE: Record<
   ToolCategory,
   { icon: LucideIcon; color: string; ink: string }
 > = {
-  power_tools: { icon: Drill, color: "#f7c520", ink: "#1b2733" },
+  power_tools: { icon: Drill, color: "#fcc30c", ink: "#0f2b47" },
   hand_tools: { icon: Hammer, color: "#e4572e", ink: "#fff8f0" },
   garden: { icon: Shovel, color: "#4c9a2a", ink: "#f3fbe9" },
-  kitchen: { icon: CookingPot, color: "#f2a5a0", ink: "#1b2733" },
+  kitchen: { icon: CookingPot, color: "#f2a5a0", ink: "#0f2b47" },
   camping: { icon: Tent, color: "#2e8b8b", ink: "#effafa" },
-  cleaning: { icon: SprayCan, color: "#86b8ea", ink: "#1b2733" },
-  ladders: { icon: Construction, color: "#f28c28", ink: "#1b2733" },
-  other: { icon: Package, color: "#a88bd6", ink: "#1b2733" },
+  cleaning: { icon: SprayCan, color: "#86b8ea", ink: "#0f2b47" },
+  ladders: { icon: Construction, color: "#f28c28", ink: "#0f2b47" },
+  other: { icon: Package, color: "#a88bd6", ink: "#0f2b47" },
 };
 
-export function categoryVars(category: ToolCategory): CSSProperties {
+export function categoryVars(category: ToolCategory) {
   const { color, ink } = CATEGORY_STYLE[category];
-  return { "--cat": color, "--cat-ink": ink } as CSSProperties;
+  return cssVars({ "--cat": color, "--cat-ink": ink });
 }
 
 export function CategoryIcon({

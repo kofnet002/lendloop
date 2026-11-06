@@ -42,9 +42,10 @@ export default function ListingsPage() {
         </EmptyState>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {tools.map((tool) => (
+          {tools.map((tool, index) => (
             <ToolCard
               key={tool._id}
+              index={index}
               tool={tool}
               meta={
                 tool.pendingRequests > 0 && (

@@ -41,7 +41,7 @@ function stepsFor(loan: LoanView, today: string): Step[] {
 
 const DOT: Record<StepState, string> = {
   done: "bg-ink text-surface",
-  current: "bg-yellow text-[#1b2733] ring-2 ring-ink",
+  current: "bg-yellow text-navy ring-2 ring-ink",
   upcoming: "bg-surface ring-2 ring-line",
   alert: "bg-stamp-red text-white",
   stopped: "bg-stamp-grey text-white",
@@ -50,10 +50,10 @@ const DOT: Record<StepState, string> = {
 export function LoanJourney({ loan, today }: { loan: LoanView; today: string }) {
   const steps = stepsFor(loan, today);
   return (
-    <ol className="flex items-center text-xs" aria-label="Loan progress">
+    <ol className="flex items-center text-[11px] sm:text-xs" aria-label="Loan progress">
       {steps.map((step, index) => (
-        <li key={step.label} className="flex flex-1 items-center gap-2 last:flex-none">
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
+        <li key={step.label} className="flex flex-1 items-center gap-1 last:flex-none sm:gap-2">
+          <span className="flex items-center gap-1 whitespace-nowrap sm:gap-1.5">
             <span
               className={cn("grid size-5 place-items-center rounded-full", DOT[step.state])}
               aria-hidden
@@ -64,6 +64,7 @@ export function LoanJourney({ loan, today }: { loan: LoanView; today: string }) 
             <span
               className={cn(
                 "font-medium",
+                step.state !== "current" && step.state !== "alert" && "sr-only sm:not-sr-only",
                 step.state === "upcoming" && "text-muted",
                 step.state === "alert" && "text-stamp-red",
               )}
@@ -75,7 +76,7 @@ export function LoanJourney({ loan, today }: { loan: LoanView; today: string }) 
           {index < steps.length - 1 && (
             <span
               className={cn(
-                "mx-1 h-0.5 min-w-3 flex-1 rounded",
+                "h-0.5 min-w-2 flex-1 rounded sm:mx-1",
                 step.state === "done" ? "bg-ink" : "bg-line",
               )}
               aria-hidden

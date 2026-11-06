@@ -1,21 +1,25 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "./logo-mark";
 
-export function Brand({ inverted = false }: { inverted?: boolean }) {
+export function Brand({ inverted = false, className }: { inverted?: boolean; className?: string }) {
   return (
     <Link
       href="/"
+      aria-label="LendLoop home"
       className={cn(
-        "flex items-center gap-2 font-display text-2xl leading-none font-extrabold tracking-wide",
-        inverted ? "text-[#e6eae4]" : "text-ink",
+        "group flex items-center gap-2 font-display text-2xl leading-none font-bold tracking-tight",
+        inverted ? "text-chalk" : "text-navy dark:text-chalk",
+        className,
       )}
     >
-      <svg viewBox="0 0 32 32" className="size-7" aria-hidden>
-        <rect width="32" height="32" rx="7" fill="var(--yellow)" />
-        <circle cx="13" cy="16" r="6" fill="none" stroke="#1b2733" strokeWidth="3" />
-        <circle cx="19" cy="16" r="6" fill="none" stroke="#1b2733" strokeWidth="3" />
-      </svg>
-      LendLoop
+      <LogoMark
+        className="size-10"
+        loopClassName={cn("loop-spin loop-spin-hover", inverted ? "neon" : "neon-dark")}
+      />
+      <span>
+        Lend<span className={cn("text-yellow", inverted && "neon-text")}>Loop</span>
+      </span>
     </Link>
   );
 }

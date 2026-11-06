@@ -2,9 +2,9 @@
 
 import { useQuery } from "convex/react";
 import Link from "next/link";
-import type { CSSProperties } from "react";
 import { api } from "@/convex/_generated/api";
 import { CATEGORY_LABELS } from "@/lib/labels";
+import { cssVars } from "@/lib/utils";
 import { ToolArt } from "./category";
 
 const MAX_TAGS = 8;
@@ -13,10 +13,11 @@ const TILTS = [-4, 3, -2, 5, -5, 2, -3, 4];
 type PegProps = { index: number; children: React.ReactNode };
 
 function Peg({ index, children }: PegProps) {
-  const style = {
+  const style = cssVars({
     "--tilt": `${TILTS[index % TILTS.length]}deg`,
     "--delay": `${index * 70}ms`,
-  } as CSSProperties;
+    "--sway": `${4 + (index % 3) * 0.8}s`,
+  });
 
   return (
     <li className="peg-tag relative pt-5" style={style}>
@@ -57,7 +58,7 @@ export function Pegboard() {
           <Peg index={0}>
             <ToolArt category="other" compact className="h-16" />
             <div className="grid gap-1 p-3 text-center">
-              <p className="font-display text-xl font-extrabold">This peg is free</p>
+              <p className="font-display text-xl font-bold tracking-tight">This peg is free</p>
               <p className="text-xs text-muted">List the first tool in your neighborhood.</p>
             </div>
           </Peg>
@@ -68,7 +69,7 @@ export function Pegboard() {
             <Peg key={tool._id} index={index}>
               <ToolArt category={tool.category} compact className="h-16" />
               <div className="grid gap-0.5 px-3 pt-2.5 pb-3 text-center">
-                <p className="font-display text-lg leading-tight font-extrabold tracking-wide">
+                <p className="font-display text-lg leading-tight font-bold tracking-tight">
                   {tool.name}
                 </p>
                 <p className="text-xs text-muted">{CATEGORY_LABELS[tool.category]}</p>
@@ -81,7 +82,7 @@ export function Pegboard() {
       {remaining > 0 && (
         <Link
           href="/board"
-          className="absolute right-4 bottom-3 rounded-full bg-[#1b2733] px-3 py-1 text-xs font-semibold text-[#e6eae4]"
+          className="absolute right-4 bottom-3 rounded-full bg-navy px-3 py-1 text-xs font-semibold text-chalk hover:bg-ink"
         >
           {remaining} more on the board
         </Link>

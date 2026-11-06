@@ -19,13 +19,14 @@ type ToolCardProps = {
   owner?: { name: string; isTrustedLender: boolean };
   meta?: ReactNode;
   actions?: ReactNode;
+  index?: number;
 };
 
-export function ToolCard({ tool, owner, meta, actions }: ToolCardProps) {
+export function ToolCard({ tool, owner, meta, actions, index }: ToolCardProps) {
   return (
-    <HangTag className="flex flex-col">
+    <HangTag index={index} className="flex flex-col">
       <div className="relative">
-        <ToolArt category={tool.category} className="h-36" />
+        <ToolArt category={tool.category} className="h-28 sm:h-36" />
         <div className="absolute right-3 -bottom-3 rounded-md bg-surface/95 px-1 py-0.5">
           <AvailabilityStamp availability={tool.availability} />
         </div>
@@ -34,7 +35,7 @@ export function ToolCard({ tool, owner, meta, actions }: ToolCardProps) {
       <div className="flex flex-1 flex-col gap-3 px-5 pt-5 pb-5">
         <div className="grid gap-1.5">
           <p className="text-xs font-semibold text-muted">{CATEGORY_LABELS[tool.category]}</p>
-          <h3 className="font-display text-[1.7rem] leading-none font-extrabold tracking-wide">
+          <h3 className="font-display text-2xl leading-tight font-bold tracking-tight">
             {tool.name}
           </h3>
           <ConditionMeter condition={tool.condition} />

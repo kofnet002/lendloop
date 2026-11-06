@@ -12,10 +12,10 @@ export function EmptyState({
 }) {
   return (
     <div className="grid justify-items-center gap-3 rounded-2xl border-2 border-dashed border-line px-6 py-14 text-center">
-      <span className="grid size-14 place-items-center rounded-full bg-yellow-soft">
-        <Icon className="size-6 text-ink" aria-hidden />
+      <span className="grid size-16 rotate-[-6deg] place-items-center rounded-2xl border-2 border-ink bg-yellow text-navy shadow-[0_3px_0_var(--ink)]">
+        <Icon className="size-7" aria-hidden />
       </span>
-      <p className="font-display text-2xl font-extrabold tracking-wide">{title}</p>
+      <p className="font-display text-2xl font-bold tracking-tight">{title}</p>
       {children && <div className="max-w-sm text-sm text-muted">{children}</div>}
     </div>
   );
@@ -42,8 +42,9 @@ export function PageHeader({
 }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <div className="grid gap-1">
-        <h1 className="font-display text-4xl font-extrabold tracking-wide sm:text-5xl">{title}</h1>
+      <div className="rise grid gap-1">
+        <span className="hazard mb-2 h-2 w-14 rounded-full" aria-hidden />
+        <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">{title}</h1>
         {description && <p className="text-muted">{description}</p>}
       </div>
       {action}

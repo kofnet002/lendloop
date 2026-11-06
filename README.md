@@ -1,3 +1,5 @@
+<p align="center"><img src="public/brand/lendloop-logo.png" alt="LendLoop: Borrow, use, return" width="560"></p>
+
 # LendLoop
 
 **Borrow what you need. Lend what you don't.**

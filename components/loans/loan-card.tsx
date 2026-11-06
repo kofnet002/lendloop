@@ -39,14 +39,16 @@ function DateStub({ loan }: { loan: LoanView }) {
   return (
     <div
       className={cn(
-        "grid w-20 shrink-0 content-center justify-items-center border-r-2 border-dashed border-line bg-paper/60 px-2 py-4 text-center sm:w-24",
+        "flex shrink-0 items-baseline gap-1.5 border-b-2 border-dashed border-line bg-paper/60 px-4 py-2 sm:grid sm:w-24 sm:content-center sm:justify-items-center sm:gap-0 sm:border-r-2 sm:border-b-0 sm:px-2 sm:py-4 sm:text-center",
         loan.isOverdue && "bg-stamp-red/10 text-stamp-red",
         muted && "text-muted",
       )}
       aria-label={`${label} ${formatDate(date)}`}
     >
       <span className="text-xs text-muted">{label}</span>
-      <span className="font-numeric text-4xl leading-none font-extrabold">{day.getUTCDate()}</span>
+      <span className="font-numeric text-2xl leading-none font-extrabold sm:text-4xl">
+        {day.getUTCDate()}
+      </span>
       <span className="text-sm font-semibold">{monthFormat.format(day)}</span>
     </div>
   );
@@ -90,13 +92,13 @@ export function LoanCard({
   const statusChanged = useChanged(statusKey);
 
   return (
-    <article className="flex overflow-hidden rounded-xl border border-line bg-surface">
+    <article className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface sm:flex-row">
       <DateStub loan={loan} />
 
-      <div className="grid min-w-0 flex-1 gap-3 p-4">
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="grid gap-0.5">
-            <h3 className="font-display text-2xl leading-tight font-extrabold tracking-wide">
+            <h3 className="font-display text-2xl leading-tight font-bold tracking-tight">
               {loan.toolName}
             </h3>
             <p className="text-sm text-muted">{formatRange(loan.startDate, loan.endDate)}</p>
