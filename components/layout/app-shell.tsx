@@ -112,7 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto grid max-w-md justify-items-center gap-4 px-4 py-24 text-center">
           <Brand />
           <p className="text-muted">Sign in to lend or borrow tools.</p>
-          <SignInButton mode="modal">
+          <SignInButton mode="modal" withSignUp>
             <Button>Sign in</Button>
           </SignInButton>
         </div>

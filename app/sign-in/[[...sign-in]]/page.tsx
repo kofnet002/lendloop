@@ -4,7 +4,7 @@ import { AuthPage } from "@/components/layout/auth-page";
 export default function SignInPage() {
   return (
     <AuthPage>
-      <SignIn fallbackRedirectUrl="/board" />
+      <SignIn withSignUp fallbackRedirectUrl="/board" />
     </AuthPage>
   );
 }
