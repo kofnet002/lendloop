@@ -3,7 +3,7 @@
 import { MessageSquare } from "lucide-react";
 import type { ReactNode } from "react";
 import { Stamp } from "@/components/ui/badge";
-import { todayISO } from "@/convex/lib/dates";
+import { toISODate, todayISO } from "@/convex/lib/dates";
 import { useChanged } from "@/hooks/use-changed";
 import { formatDate, formatRange } from "@/lib/format";
 import { LOAN_STATUS } from "@/lib/labels";
@@ -14,7 +14,43 @@ import type { LoanView } from "./types";
 
 type Perspective = "borrower" | "lender" | "admin";
 
-const dueFormat = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
+const monthFormat = new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" });
+
+/** What the stub stamps: the due date while a loan is live, otherwise how it ended. */
+function stubFor(loan: LoanView): { label: string; date: string; muted: boolean } {
+  switch (loan.status) {
+    case "returned":
+      return {
+        label: "Back",
+        date: toISODate(loan.returnedAt ?? loan._creationTime),
+        muted: false,
+      };
+    case "declined":
+    case "cancelled":
+      return { label: "Wanted", date: loan.startDate, muted: true };
+    default:
+      return { label: "Due", date: loan.endDate, muted: false };
+  }
+}
+
+function DateStub({ loan }: { loan: LoanView }) {
+  const { label, date, muted } = stubFor(loan);
+  const day = new Date(`${date}T00:00:00Z`);
+  return (
+    <div
+      className={cn(
+        "grid w-20 shrink-0 content-center justify-items-center border-r-2 border-dashed border-line bg-paper/60 px-2 py-4 text-center sm:w-24",
+        loan.isOverdue && "bg-stamp-red/10 text-stamp-red",
+        muted && "text-muted",
+      )}
+      aria-label={`${label} ${formatDate(date)}`}
+    >
+      <span className="text-xs text-muted">{label}</span>
+      <span className="font-numeric text-4xl leading-none font-extrabold">{day.getUTCDate()}</span>
+      <span className="text-sm font-semibold">{monthFormat.format(day)}</span>
+    </div>
+  );
+}
 
 function Party({ label, name }: { label: string; name: string }) {
   return (
@@ -52,23 +88,10 @@ export function LoanCard({
   const statusKey = loan.isOverdue ? "overdue" : loan.status;
   const status = LOAN_STATUS[statusKey];
   const statusChanged = useChanged(statusKey);
-  const due = new Date(`${loan.endDate}T00:00:00Z`);
 
   return (
     <article className="flex overflow-hidden rounded-xl border border-line bg-surface">
-      <div
-        className={cn(
-          "grid w-20 shrink-0 content-center justify-items-center border-r-2 border-dashed border-line bg-paper/60 px-2 py-4 text-center sm:w-24",
-          loan.isOverdue && "bg-stamp-red/10 text-stamp-red",
-        )}
-        aria-label={`Due ${formatDate(loan.endDate)}`}
-      >
-        <span className="text-xs text-muted">Due</span>
-        <span className="font-numeric text-4xl leading-none font-extrabold">
-          {due.getUTCDate()}
-        </span>
-        <span className="text-sm font-semibold">{dueFormat.format(due)}</span>
-      </div>
+      <DateStub loan={loan} />
 
       <div className="grid min-w-0 flex-1 gap-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">

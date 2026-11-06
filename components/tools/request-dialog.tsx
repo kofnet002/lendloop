@@ -48,9 +48,10 @@ function RequestForm({
 }) {
   const today = todayISO();
   const booked = tool.availability.bookedRanges;
-  const [selection, setSelection] = useState<{ startDate: string; endDate?: string }>(() => ({
-    startDate: firstFreeDay(today, booked),
-  }));
+  const [selection, setSelection] = useState<{ startDate: string; endDate?: string }>(() => {
+    const day = firstFreeDay(today, booked);
+    return { startDate: day, endDate: day };
+  });
   const [message, setMessage] = useState("");
   const request = useMutation(api.loans.request);
   const { run, busy } = useAsyncAction();
@@ -82,7 +83,7 @@ function RequestForm({
         <span className="font-semibold">{formatRange(selection.startDate, endDate)}</span>
         <span className="text-muted">
           {days} day{days === 1 ? "" : "s"}
-          {!selection.endDate && ", tap a return day to extend"}
+          {!selection.endDate && ", now tap your return day"}
         </span>
       </p>
       <Field

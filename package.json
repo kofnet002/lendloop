@@ -17,7 +17,9 @@
     "n8n:check": "node n8n/build-workflows.mjs && git diff --exit-code -- n8n/workflows",
     "n8n:up": "docker compose up -d",
     "n8n:import": "./n8n/import.sh",
-    "seed": "convex run seed:demo"
+    "seed": "convex run seed:demo",
+    "test:e2e": "playwright test",
+    "setup:clerk": "node --env-file=.env.local scripts/setup-clerk-dev.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.25",
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

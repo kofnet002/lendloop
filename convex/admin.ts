@@ -50,22 +50,54 @@ export const setTrustedLender = adminMutation({
   },
 });
 
+const OPEN_ISSUES = 50;
+
+/** Undismissed failures only, with enough loan context for an admin to act on them. */
 export const automationHealth = adminQuery({
   args: {},
   handler: async (ctx) => {
-    const [failedEvents, pendingEvents, workflowFailures] = await Promise.all([
+    const [failed, pending, workflowFailures] = await Promise.all([
       ctx.db
         .query("automationEvents")
-        .withIndex("by_status", (q) => q.eq("status", "failed"))
+        .withIndex("by_status_dismissed", (q) =>
+          q.eq("status", "failed").eq("dismissedAt", undefined),
+        )
         .order("desc")
-        .take(50),
+        .take(OPEN_ISSUES),
       ctx.db
         .query("automationEvents")
-        .withIndex("by_status", (q) => q.eq("status", "pending"))
-        .take(50),
-      ctx.db.query("automationFailures").order("desc").take(50),
+        .withIndex("by_status_dismissed", (q) => q.eq("status", "pending"))
+        .take(OPEN_ISSUES),
+      ctx.db
+        .query("automationFailures")
+        .withIndex("by_dismissed", (q) => q.eq("dismissedAt", undefined))
+        .order("desc")
+        .take(OPEN_ISSUES),
     ]);
-    return { failedEvents, pendingCount: pendingEvents.length, workflowFailures };
+    const failedEvents = await Promise.all(
+      failed.map(async (event) => ({
+        ...event,
+        toolName: (await ctx.db.get(event.loanId))?.toolName ?? "Removed loan",
+      })),
+    );
+    return { failedEvents, pendingCount: pending.length, workflowFailures };
+  },
+});
+
+export const dismissAutomationEvent = adminMutation({
+  args: { eventId: v.id("automationEvents") },
+  handler: async (ctx, { eventId }) => {
+    const event = await ctx.db.get(eventId);
+    if (!event || event.status !== "failed") fail("NOT_FOUND", "Failed delivery not found.");
+    await ctx.db.patch(eventId, { dismissedAt: Date.now() });
+  },
+});
+
+export const dismissWorkflowFailure = adminMutation({
+  args: { failureId: v.id("automationFailures") },
+  handler: async (ctx, { failureId }) => {
+    if (!(await ctx.db.get(failureId))) fail("NOT_FOUND", "Workflow error not found.");
+    await ctx.db.patch(failureId, { dismissedAt: Date.now() });
   },
 });
 
@@ -82,6 +114,7 @@ export const retryAutomationEvent = adminMutation({
       attempts: 0,
       lastError: undefined,
       completedAt: undefined,
+      dismissedAt: undefined,
     });
     await ctx.scheduler.runAfter(0, internal.automation.deliverLoanEvent, { eventId });
   },

@@ -64,17 +64,24 @@ function Navigation() {
   );
 }
 
-function SignedInShell({ children }: { children: ReactNode }) {
-  useSyncViewer();
+function Frame({
+  account,
+  navigation,
+  children,
+}: {
+  account?: ReactNode;
+  navigation: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <>
-      <header className="sticky top-0 z-10 bg-[#1b2733] shadow-[0_2px_0_var(--yellow)]">
+      <header className="sticky top-0 z-30 bg-[#1b2733] shadow-[0_2px_0_var(--yellow)]">
         <div className="mx-auto grid max-w-6xl gap-2 px-4 pt-3 sm:px-6">
-          <div className="flex items-center justify-between">
+          <div className="flex h-8 items-center justify-between">
             <Brand inverted />
-            <UserButton />
+            {account}
           </div>
-          <Navigation />
+          {navigation}
         </div>
       </header>
       <main className="mx-auto grid w-full max-w-6xl content-start gap-6 px-4 py-8 sm:px-6">
@@ -84,13 +91,22 @@ function SignedInShell({ children }: { children: ReactNode }) {
   );
 }
 
+function SignedInShell({ children }: { children: ReactNode }) {
+  useSyncViewer();
+  return (
+    <Frame account={<UserButton />} navigation={<Navigation />}>
+      {children}
+    </Frame>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <AuthLoading>
-        <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+        <Frame navigation={<div className="h-[42px]" aria-hidden />}>
           <LoadingList />
-        </div>
+        </Frame>
       </AuthLoading>
       <Unauthenticated>
         <div className="mx-auto grid max-w-md justify-items-center gap-4 px-4 py-24 text-center">

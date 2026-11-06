@@ -158,6 +158,36 @@ describe("loan event outbox", () => {
     expect((await admin.query(api.admin.automationHealth)).failedEvents).toHaveLength(0);
   });
 
+  it("lets only admins dismiss failed deliveries and workflow errors", async () => {
+    const { t, alice, bob, admin } = createTestEnv();
+    mockN8n(401);
+    const toolId = await alice.mutation(api.tools.create, drill);
+    await bob.mutation(api.loans.request, {
+      toolId,
+      startDate: "2026-11-10",
+      endDate: "2026-11-11",
+    });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const body = JSON.stringify({ workflow: "LendLoop", executionId: "7", message: "boom" });
+    const { path, init } = await signedRequest("/automation/failures", { method: "POST", body });
+    await t.fetch(path, init);
+
+    const health = await admin.query(api.admin.automationHealth);
+    expect(health.failedEvents[0].toolName).toBe(drill.name);
+    const eventId = health.failedEvents[0]._id;
+    const failureId = health.workflowFailures[0]._id;
+
+    await expect(alice.mutation(api.admin.dismissAutomationEvent, { eventId })).rejects.toThrow(
+      /Admin access required/,
+    );
+    await admin.mutation(api.admin.dismissAutomationEvent, { eventId });
+    await admin.mutation(api.admin.dismissWorkflowFailure, { failureId });
+
+    const after = await admin.query(api.admin.automationHealth);
+    expect(after.failedEvents).toHaveLength(0);
+    expect(after.workflowFailures).toHaveLength(0);
+  });
+
   it("gives up after the maximum number of attempts", async () => {
     const { t, alice, bob, admin } = createTestEnv();
     const fetchMock = mockN8n(500);
