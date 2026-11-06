@@ -34,7 +34,16 @@ export function ToolFormDialog({ open, onClose, tool }: ToolFormDialogProps) {
 }
 
 function ToolForm({ tool, onDone }: { tool?: ToolFormDialogProps["tool"]; onDone: () => void }) {
-  const [values, setValues] = useState<ToolInput>(tool ?? EMPTY);
+  const [values, setValues] = useState<ToolInput>(() =>
+    tool
+      ? {
+          name: tool.name,
+          category: tool.category,
+          condition: tool.condition,
+          description: tool.description,
+        }
+      : EMPTY,
+  );
   const create = useMutation(api.tools.create);
   const update = useMutation(api.tools.update);
   const { run, busy } = useAsyncAction();
@@ -62,7 +71,6 @@ function ToolForm({ tool, onDone }: { tool?: ToolFormDialogProps["tool"]; onDone
           value={values.name}
           onChange={(event) => set("name", event.target.value)}
           placeholder="Cordless drill"
-          autoFocus
         />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
