@@ -91,7 +91,7 @@ export function DateRangeCalendar({
         >
           <ChevronLeft className="size-4" />
         </button>
-        <p className="font-display text-xl font-extrabold tracking-wide" aria-live="polite">
+        <p className="font-display text-xl font-bold tracking-tight" aria-live="polite">
           {monthFormat.format(new Date(`${month}T00:00:00Z`))}
         </p>
         <button
@@ -132,7 +132,7 @@ export function DateRangeCalendar({
                 booked &&
                   "bg-[repeating-linear-gradient(135deg,var(--line)_0_3px,transparent_3px_7px)] line-through",
                 selected && "bg-yellow-soft",
-                edge && "press bg-yellow text-[#1b2733] hover:bg-yellow",
+                edge && "press bg-yellow text-navy hover:bg-yellow",
               )}
             >
               {Number(day.slice(8))}

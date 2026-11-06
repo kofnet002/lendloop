@@ -39,7 +39,7 @@ export function Dialog({ open, onClose, title, description, children }: DialogPr
         <div className="grid gap-4 p-5">
           <header className="flex items-start justify-between gap-4">
             <div className="grid gap-1">
-              <h2 id={titleId} className="font-display text-2xl font-extrabold tracking-wide">
+              <h2 id={titleId} className="font-display text-2xl font-bold tracking-tight">
                 {title}
               </h2>
               {description && (

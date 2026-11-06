@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Search, SearchX } from "lucide-react";
 import { useDeferredValue, useState } from "react";
+import { LoopSummary } from "@/components/loans/loop-summary";
 import { NeedsYou } from "@/components/loans/needs-you";
 import { CategoryFilter } from "@/components/tools/category-filter";
 import { RequestDialog } from "@/components/tools/request-dialog";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/field";
-import { EmptyState, LoadingList, PageHeader } from "@/components/ui/states";
+import { EmptyState, LoadingList } from "@/components/ui/states";
 import { api } from "@/convex/_generated/api";
 import type { ToolCategory } from "@/convex/lib/constants";
 import { useAsyncAction } from "@/hooks/use-async-action";
@@ -45,23 +46,24 @@ export default function BoardPage() {
 
   return (
     <>
-      <PageHeader
+      <LoopSummary
         title={greeting(viewer?.name)}
-        description="What are you fixing, growing or cooking this week?"
-        action={
-          <label className="relative w-full sm:w-72">
-            <span className="sr-only">Search tools</span>
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
-            <Input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search drills, tents, mixers…"
-              className="border-2 border-ink pl-9"
-            />
-          </label>
+        readyCount={
+          tools?.filter((tool) => !tool.isOwn && tool.availability.state === "available").length
         }
-      />
+      >
+        <label className="relative w-full sm:max-w-sm">
+          <span className="sr-only">Search tools</span>
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+          <Input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search drills, tents, mixers…"
+            className="h-11 border-2 border-yellow pl-9"
+          />
+        </label>
+      </LoopSummary>
       <NeedsYou />
       <CategoryFilter value={category} onChange={setCategory} />
 
@@ -73,9 +75,10 @@ export default function BoardPage() {
         </EmptyState>
       ) : (
         <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((tool) => (
+          {visible.map((tool, index) => (
             <ToolCard
               key={tool._id}
+              index={index}
               tool={tool}
               owner={tool.owner}
               meta={tool.isOwn && <Badge tone="info">Yours</Badge>}

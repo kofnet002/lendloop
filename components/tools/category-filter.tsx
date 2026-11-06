@@ -20,7 +20,7 @@ export function CategoryFilter({
 }) {
   return (
     <div
-      className="-mx-1 flex gap-2 overflow-x-auto px-1 pt-1 pb-2"
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] sm:-mx-1 sm:px-1 lg:flex-wrap"
       role="group"
       aria-label="Filter by category"
     >
@@ -34,7 +34,7 @@ export function CategoryFilter({
             onClick={() => onChange(optionValue)}
             className={cn(
               "flex items-center gap-1.5 rounded-full border-2 border-line bg-surface px-3 py-1.5 text-sm font-medium whitespace-nowrap text-muted hover:border-ink hover:text-ink",
-              active && "press border-ink bg-yellow text-[#1b2733] hover:text-[#1b2733]",
+              active && "press border-ink bg-yellow text-navy hover:text-navy",
             )}
           >
             <Icon className="size-4" aria-hidden />

@@ -4,6 +4,7 @@ import { SignInButton, UserButton } from "@clerk/nextjs";
 import { Authenticated, AuthLoading, Unauthenticated, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Hand, Inbox, LayoutGrid, Package, ShieldCheck } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingList } from "@/components/ui/states";
@@ -13,11 +14,13 @@ import { cn } from "@/lib/utils";
 import { Brand } from "./brand";
 
 const NAV = [
-  { href: "/board", label: "Board" },
-  { href: "/listings", label: "My listings" },
-  { href: "/requests", label: "My requests" },
-  { href: "/incoming", label: "Incoming" },
+  { href: "/board", label: "Board", short: "Board", icon: LayoutGrid },
+  { href: "/listings", label: "My listings", short: "Listings", icon: Package },
+  { href: "/requests", label: "My requests", short: "Requests", icon: Hand },
+  { href: "/incoming", label: "Incoming", short: "Incoming", icon: Inbox },
 ] as const;
+
+const ADMIN_NAV = { href: "/admin", label: "Admin", short: "Admin", icon: ShieldCheck };
 
 function useSyncViewer() {
   const sync = useMutation(api.users.sync);
@@ -26,40 +29,95 @@ function useSyncViewer() {
   }, [sync]);
 }
 
-function NavLink({ href, children }: { href: string; children: ReactNode }) {
-  const active = usePathname().startsWith(href);
+function useNavItems() {
+  const { isAdmin } = useViewer();
+  const incoming = useQuery(api.loans.incoming);
+  const pending = incoming?.filter((loan) => loan.status === "requested").length ?? 0;
+  const items = isAdmin ? [...NAV, ADMIN_NAV] : NAV;
+  return items.map((item) => ({ ...item, count: item.href === "/incoming" ? pending : 0 }));
+}
+
+function useIsActive() {
+  const pathname = usePathname();
+  return (href: string) => pathname.startsWith(href);
+}
+
+function Count({ value, className }: { value: number; className?: string }) {
+  if (value === 0) return null;
   return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
+    <span
       className={cn(
-        "flex items-center gap-1.5 border-b-[3px] border-transparent px-3 pt-2 pb-2.5 text-sm font-medium whitespace-nowrap text-[#e6eae4]/70 hover:text-[#e6eae4]",
-        active && "border-yellow text-[#e6eae4]",
+        "grid h-5 min-w-5 place-items-center rounded-full bg-yellow px-1 text-xs font-bold text-navy",
+        className,
       )}
     >
-      {children}
-    </Link>
+      {value}
+    </span>
   );
 }
 
 function Navigation() {
-  const { isAdmin } = useViewer();
-  const incoming = useQuery(api.loans.incoming);
-  const pending = incoming?.filter((loan) => loan.status === "requested").length ?? 0;
+  const items = useNavItems();
+  const isActive = useIsActive();
 
   return (
-    <nav className="-mx-3 -mb-px flex overflow-x-auto px-0" aria-label="Main">
-      {NAV.map(({ href, label }) => (
-        <NavLink key={href} href={href}>
-          {label}
-          {href === "/incoming" && pending > 0 && (
-            <span className="grid h-5 min-w-5 place-items-center rounded-full bg-yellow px-1 text-xs font-bold text-[#1b2733]">
-              {pending}
-            </span>
+    <nav className="-mx-3 -mb-px hidden sm:flex" aria-label="Main">
+      {items.map(({ href, label, count }) => (
+        <Link
+          key={href}
+          href={href}
+          aria-current={isActive(href) ? "page" : undefined}
+          className={cn(
+            "flex items-center gap-1.5 border-b-[3px] border-transparent px-3 pt-2 pb-2.5 text-sm font-medium whitespace-nowrap text-chalk/70 transition-colors hover:text-chalk",
+            isActive(href) && "border-yellow text-chalk",
           )}
-        </NavLink>
+        >
+          {label}
+          <Count value={count} />
+        </Link>
       ))}
-      {isAdmin && <NavLink href="/admin">Admin</NavLink>}
+    </nav>
+  );
+}
+
+/** Phone navigation: a thumb-reachable tab bar pinned to the bottom of the screen. */
+function TabBar() {
+  const items = useNavItems();
+  const isActive = useIsActive();
+
+  return (
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-yellow bg-navy pb-[env(safe-area-inset-bottom)] sm:hidden"
+    >
+      <ul className="flex">
+        {items.map(({ href, short, icon: Icon, count }) => (
+          <li key={href} className="flex-1">
+            <Link
+              href={href}
+              aria-current={isActive(href) ? "page" : undefined}
+              className={cn(
+                "relative grid justify-items-center gap-1 py-2 text-[11px] font-medium text-chalk/65",
+                isActive(href) && "text-yellow",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-7 w-12 place-items-center rounded-full transition-colors",
+                  isActive(href) && "bg-yellow text-navy",
+                )}
+              >
+                <Icon className="size-[18px]" aria-hidden />
+              </span>
+              {short}
+              <Count
+                value={count}
+                className="absolute top-1 left-1/2 ml-2 h-4 min-w-4 text-[10px]"
+              />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </nav>
   );
 }
@@ -75,16 +133,17 @@ function Frame({
 }) {
   return (
     <>
-      <header className="sticky top-0 z-30 bg-[#1b2733] shadow-[0_2px_0_var(--yellow)]">
-        <div className="mx-auto grid max-w-6xl gap-2 px-4 pt-3 sm:px-6">
-          <div className="flex h-8 items-center justify-between">
+      <header className="sticky top-0 z-30 bg-navy">
+        <div className="mx-auto grid max-w-6xl gap-1 px-4 py-2.5 sm:px-6 sm:pb-0">
+          <div className="flex h-10 items-center justify-between">
             <Brand inverted />
             {account}
           </div>
           {navigation}
         </div>
+        <div className="hazard h-1.5 border-t-2 border-navy" aria-hidden />
       </header>
-      <main className="mx-auto grid w-full max-w-6xl content-start gap-6 px-4 py-8 sm:px-6">
+      <main className="mx-auto grid w-full max-w-6xl content-start gap-6 px-4 pt-6 pb-28 sm:px-6 sm:py-8">
         {children}
       </main>
     </>
@@ -94,9 +153,12 @@ function Frame({
 function SignedInShell({ children }: { children: ReactNode }) {
   useSyncViewer();
   return (
-    <Frame account={<UserButton />} navigation={<Navigation />}>
-      {children}
-    </Frame>
+    <>
+      <Frame account={<UserButton />} navigation={<Navigation />}>
+        {children}
+      </Frame>
+      <TabBar />
+    </>
   );
 }
 
@@ -104,7 +166,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <AuthLoading>
-        <Frame navigation={<div className="h-[42px]" aria-hidden />}>
+        <Frame navigation={<div className="hidden h-[42px] sm:block" aria-hidden />}>
           <LoadingList />
         </Frame>
       </AuthLoading>

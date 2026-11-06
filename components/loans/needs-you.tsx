@@ -62,7 +62,7 @@ export function NeedsYou() {
   return (
     <section
       aria-label="Needs your attention"
-      className="grid gap-2 rounded-2xl bg-[#1b2733] p-2 text-[#e6eae4]"
+      className="grid gap-2 rounded-2xl bg-navy p-2 text-chalk"
     >
       {items.map(({ key, href, icon: Icon, text, urgent }) => (
         <Link
@@ -74,7 +74,7 @@ export function NeedsYou() {
             className={
               urgent
                 ? "grid size-8 place-items-center rounded-lg bg-[#c8372d] text-white"
-                : "grid size-8 place-items-center rounded-lg bg-yellow text-[#1b2733]"
+                : "grid size-8 place-items-center rounded-lg bg-yellow text-navy"
             }
           >
             <Icon className="size-4" aria-hidden />
