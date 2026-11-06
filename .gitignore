@@ -47,3 +47,7 @@ next-env.d.ts
 
 # clerk keyless
 .clerk/
+
+# local tooling
+.playwright-mcp/
+.claude/
